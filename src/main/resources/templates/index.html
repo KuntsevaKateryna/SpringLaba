@@ -1,0 +1,35 @@
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>First</title>
+</head>
+<body>
+<h2 th:text="${tip}" />
+
+Enter parameters to search film:
+<form action="/main/home" method="post" >
+    <span>Title:</span><input type="text" name="t" /> <span> or imdbID:</span> <input type="text" name="imdbID" /><br/>
+    <span>Year:</span><input type="text" name="y" /> <br/>
+    <span>Plot:</span>
+    <select size="1" name="p">
+        <option selected value="full">Full</option>
+        <option  value="Short">Short</option>
+    </select><br/>
+    <span>Response:</span>
+    <select size="1" name="r">
+        <option selected value="json">JSON</option>
+        <option value="xml">XML</option>
+    </select> <br/>
+
+    <input type="submit" value="Ok"/>
+</form>
+
+<p><textarea th:text="${description}" rows="10" cols="45" name="desc"></textarea></p>
+
+<form action="/main/save" method="post" >
+    <input type="submit" value="Save"/>
+</form>
+</body>
+</html>
