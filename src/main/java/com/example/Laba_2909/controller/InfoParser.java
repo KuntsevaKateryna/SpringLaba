@@ -23,7 +23,9 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -93,15 +95,14 @@ public class InfoParser {
                 film.setRatings(rating);
             }
 
-        } catch (ClassCastException | ParseException | IllegalAccessException | /*NoSuchMethodException | */ InvocationTargetException e) {
-            e.printStackTrace();
-            //  logger.info("impossiable to parse: " + jsonString);
+        } catch (ClassCastException | ParseException | IllegalAccessException | InvocationTargetException | NullPointerException e) {
+            logger.error(stackTraceIntoString(e));
         }
         return film;
     }
 
 
-    public Movie parseXML(String xmlString) throws IOException, SAXException {
+    public Movie parseXML(String xmlString)  {
         // створення DOM-аналізатора
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         Movie film = new Movie();
@@ -148,11 +149,24 @@ public class InfoParser {
                     }
                 }
             }
-        } catch (IllegalAccessException | XPathExpressionException | ParserConfigurationException | InvocationTargetException e) {
-            logger.error(e.getMessage());
+        } catch (IllegalAccessException | XPathExpressionException | ParserConfigurationException | InvocationTargetException | SAXException | IOException e) {
+            logger.error(stackTraceIntoString(e));
         }
         System.out.println("film :" + film.toString());
         return film;
+    }
+
+    /**
+     *
+     * @param e Exception
+     * @return StackTrace as String
+     */
+    String stackTraceIntoString (Exception e) {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+       if (e != null)
+           e.printStackTrace(pw);
+        return sw.toString();
     }
 
 

@@ -25,7 +25,6 @@ public class MainController {
 
     Logger logger = LoggerFactory.getLogger(MainController.class);
 
-
     @Value("${apikey_value}")
     private String apikey_value;
 
@@ -36,90 +35,97 @@ public class MainController {
     private String site_address;
 
     List<String> film_info = new ArrayList<String>();
-    Movie film = null;
+    List<Movie> films = new ArrayList<Movie>();
 
-
+    /**
+     * Show start page
+     * @param model
+     * @return start page
+     */
     @GetMapping("/home")
     public String defaultPage(Model model) {
         return "index";
     }
 
+    /**
+     * Search film info and parse it in necessary format
+     * @param model
+     * @param t - title of movie
+     * @param imdbID
+     * @param y - year
+     * @param p - plot
+     * @param r - response format: json or xml
+     * @return start page
+     */
     @PostMapping("/home")
     public String searchFilm(ModelMap model,
                              @RequestParam String t,
                              @RequestParam String imdbID,
                              @RequestParam String y,
                              @RequestParam String p,
-                             @RequestParam String r) throws URISyntaxException, IOException {
+                             @RequestParam String r) {
         String rez = null;
         logger.info("start to send request");
+        try {
+            UriComponentsBuilder builder1 = UriComponentsBuilder.fromUriString(site_address)
+                    .queryParam("apikey", apikey_value);
+            if (imdbID != null) {
+                builder1
+                        .queryParam("i", imdbID);
+                            }
+             if (t != null) {
+                builder1
+                        .queryParam("t", t)
+                        .queryParam("y", y);
+            }
 
-        UriComponentsBuilder builder1 = UriComponentsBuilder.fromUriString(site_address)
-                .queryParam("apikey", apikey_value);
-
-
-        if (imdbID != null) {
-
-            builder1
-                    .queryParam("i", imdbID);
-        }
-        if (t != null) {
-            builder1
-                    .queryParam("t", t)
-                    .queryParam("y", y);
-        }
-
-        if (p.equals("full")) {
-            builder1.queryParam("plot", p);
-        }
-        if (r.equals("xml")) {
-            builder1.queryParam("r", r);
-        }
-        URI builder1URI = builder1.build().toUri();
-        logger.info("URL is " + builder1URI);
-
-        BufferedReader in = new BufferedReader(
-                new InputStreamReader(builder1URI.toURL().openStream()));
-/*
-read the result
- */
-        String inputLine;
-        while ((inputLine = in.readLine()) != null) {
-
-            film_info.add(inputLine);
-            InfoParser parser = new InfoParser();
-
+            if (p.equals("full")) {
+                builder1.queryParam("plot", p);
+            }
             if (r.equals("xml")) {
-                System.out.println("before parseXML filmInfo: " + inputLine);
-                try {
-                    film = parser.parseXML(inputLine);
-                } catch (IOException | SAXException e) {
-                    e.printStackTrace();
+                builder1.queryParam("r", r);
+            }
+            URI builder1URI = builder1.build().toUri();
+            logger.info("URL is " + builder1URI);
+
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(builder1URI.toURL().openStream()));
+
+            //read the result
+            String inputLine;
+            while ((inputLine = in.readLine()) != null) {
+
+                film_info.add(inputLine);
+                InfoParser parser = new InfoParser();
+
+                if (r.equals("xml")) {
+                    films.add(parser.parseXML(inputLine));
+
+                }
+                if (r.equals("json")) {
+                    films.add(parser.parseJson(inputLine));
                 }
             }
-            if (r.equals("json")) {
-                film = parser.parseJson(inputLine);
-                //System.out.println("parseJson_toMovie filmInfo: " + film.toString());
-            }
+            in.close();
+            rez = String.join("\n\n", film_info);
+            model.addAttribute("description", rez);
+            logger.info("rez: " + rez);
+
+        } catch (IOException e) {
+            logger.error(e.getMessage());
         }
-        in.close();
-        rez = String.join("\n\n", film_info);
-        model.addAttribute("description", rez);
-        logger.info("rez: " + rez);
-        return "index";
+       return "index";
     }
 
-
+    /**
+     * Save movie into MS Word file
+     * @return Start page
+     */
     @PostMapping("/save")
     public String saveInfo() {
-        try {
-            InfoLoader loader = new InfoLoader();
-            if (film != null)
-                loader.saveMsWordFile(loader.generateMsWordStructure(film), file_path);
-            else logger.info("Search film before");
-        } catch (IOException | URISyntaxException | InvalidFormatException e) {
-            logger.error(e.toString());
-        }
+        InfoLoader loader = new InfoLoader();
+        loader.saveMsWordFile(loader.generateMsWordStructure(films), file_path);
+        film_info.clear();
         return "index";
     }
 }
