@@ -2,21 +2,21 @@ package com.example.Laba_2909.controller;
 
 
 import com.example.Laba_2909.model.Movie;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import com.example.Laba_2909.service.InfoLoader;
+import com.example.Laba_2909.service.InfoParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.util.UriComponentsBuilder;
-import org.xml.sax.SAXException;
 
 import java.io.*;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 
 @Controller
@@ -34,6 +34,12 @@ public class MainController {
     @Value("${site_address}")
     private String site_address;
 
+    @Autowired
+    private InfoLoader infoLoader;
+
+    @Autowired
+    private InfoParser infoParser;
+
     List<String> film_info = new ArrayList<String>();
     List<Movie> films = new ArrayList<Movie>();
 
@@ -49,12 +55,13 @@ public class MainController {
 
     /**
      * Search film info and parse it in necessary format
+     *
      * @param model
-     * @param t - title of movie
+     * @param t      - title of movie
      * @param imdbID
-     * @param y - year
-     * @param p - plot
-     * @param r - response format: json or xml
+     * @param y      - year
+     * @param p      - plot
+     * @param r      - response format: json or xml
      * @return start page
      */
     @PostMapping("/home")
@@ -63,58 +70,39 @@ public class MainController {
                              @RequestParam String imdbID,
                              @RequestParam String y,
                              @RequestParam String p,
-                             @RequestParam String r) {
+                             @RequestParam String r)  {
         String rez = null;
         logger.info("start to send request");
-        try {
-            UriComponentsBuilder builder1 = UriComponentsBuilder.fromUriString(site_address)
-                    .queryParam("apikey", apikey_value);
-            if (imdbID != null) {
-                builder1
-                        .queryParam("i", imdbID);
-                            }
-             if (t != null) {
-                builder1
-                        .queryParam("t", t)
-                        .queryParam("y", y);
-            }
+         try {
 
-            if (p.equals("full")) {
-                builder1.queryParam("plot", p);
-            }
-            if (r.equals("xml")) {
-                builder1.queryParam("r", r);
-            }
-            URI builder1URI = builder1.build().toUri();
-            logger.info("URL is " + builder1URI);
+        if (!imdbID.isEmpty()) {
+            CompletableFuture<String> result_imdbID = infoLoader.findMovieByImdbID(site_address, apikey_value, imdbID, r);
+            result_imdbID.thenAcceptAsync(i -> {
+                logger.warn("finished name result_imdbID=" + result_imdbID);
+            });
+            film_info.add(result_imdbID.get());
+            films.add(chooseParser(r, result_imdbID.get()));
+        }
 
-            BufferedReader in = new BufferedReader(
-                    new InputStreamReader(builder1URI.toURL().openStream()));
+        if (!t.isEmpty()) {
+            CompletableFuture<String> result_title = infoLoader.findMovieByTitle(site_address, apikey_value, t, y, p, r);
+            result_title.thenAcceptAsync(ii -> {
+                logger.warn("finished name result_title=" + result_title);
+            });
+            film_info.add(result_title.get());
+            films.add(chooseParser(r, result_title.get()));
+         }
 
-            //read the result
-            String inputLine;
-            while ((inputLine = in.readLine()) != null) {
+        rez = String.join("\n\n", film_info);
+        model.addAttribute("description", rez);
+        logger.info("rez: " + rez);
 
-                film_info.add(inputLine);
-                InfoParser parser = new InfoParser();
-
-                if (r.equals("xml")) {
-                    films.add(parser.parseXML(inputLine));
-
-                }
-                if (r.equals("json")) {
-                    films.add(parser.parseJson(inputLine));
-                }
-            }
-            in.close();
-            rez = String.join("\n\n", film_info);
-            model.addAttribute("description", rez);
-            logger.info("rez: " + rez);
-
-        } catch (IOException e) {
+        } catch (InterruptedException | IOException e) {
+            logger.error(e.getMessage());
+        } catch (ExecutionException e) {
             logger.error(e.getMessage());
         }
-       return "index";
+        return "index";
     }
 
     /**
@@ -123,9 +111,25 @@ public class MainController {
      */
     @PostMapping("/save")
     public String saveInfo() {
-        InfoLoader loader = new InfoLoader();
-        loader.saveMsWordFile(loader.generateMsWordStructure(films), file_path);
+        infoLoader.saveMsWordFile(infoLoader.generateMsWordStructure(films), file_path);
         film_info.clear();
         return "index";
+    }
+
+    /**
+     * Method used to choose a parsing method
+     * @param format xml or json
+     * @param film_info the film info line, need to parse
+     * @return Movie object
+     */
+    private Movie chooseParser (String format, String film_info) {
+        Movie film = null;
+        if (format.equals("xml")) {
+            film = infoParser.parseXML(film_info);
+        }
+        if (format.equals("json")) {
+            film = infoParser.parseJson(film_info);
+        }
+        return film;
     }
 }

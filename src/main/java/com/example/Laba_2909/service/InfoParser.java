@@ -1,4 +1,4 @@
-package com.example.Laba_2909.controller;
+package com.example.Laba_2909.service;
 
 import com.example.Laba_2909.model.Movie;
 import com.example.Laba_2909.model.Rating;
@@ -8,6 +8,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -32,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+@Service
 public class InfoParser {
 
     Logger logger = LoggerFactory.getLogger(InfoParser.class);
@@ -60,7 +62,12 @@ public class InfoParser {
             "Website",
             "Response"};
 
-
+    /**
+     * Method used to parse a result, received in json format from site
+     *
+     * @param jsonString film info in json format
+     * @return Movie object
+     */
     public Movie parseJson(String jsonString) {
         Movie film = new Movie();
         List<Rating> rating = new ArrayList<Rating>();
@@ -83,7 +90,7 @@ public class InfoParser {
             // to get array Ratings []
             JSONArray getRatings = (JSONArray) jo.get("Ratings");
             Iterator iter = getRatings.iterator();
-// to output array items
+            // to output array items
             while (iter.hasNext()) {
                 JSONObject raitings = (JSONObject) iter.next();
                 rating.add(new Rating(
@@ -102,8 +109,12 @@ public class InfoParser {
     }
 
 
-    public Movie parseXML(String xmlString)  {
-        // створення DOM-аналізатора
+    /**
+     * Method used to parse a result, received in xml format from site
+     * @param xmlString - film info in xml format
+     * @return Movie object
+     */
+    public Movie parseXML(String xmlString) {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         Movie film = new Movie();
         List<Rating> rating = new ArrayList<Rating>();
@@ -112,7 +123,7 @@ public class InfoParser {
         try {
             DocumentBuilder builder = factory.newDocumentBuilder();
             Document doc = builder.parse(new InputSource(new StringReader(xmlString)));
-            Element root = doc.getDocumentElement(); // звернення до кореневого вузла
+            Element root = doc.getDocumentElement();
             XPathFactory xpFactory = XPathFactory.newInstance();
             XPath path = xpFactory.newXPath();
 
@@ -152,20 +163,19 @@ public class InfoParser {
         } catch (IllegalAccessException | XPathExpressionException | ParserConfigurationException | InvocationTargetException | SAXException | IOException e) {
             logger.error(stackTraceIntoString(e));
         }
-        System.out.println("film :" + film.toString());
+        logger.info("film :" + film.toString());
         return film;
     }
 
     /**
-     *
      * @param e Exception
      * @return StackTrace as String
      */
-    String stackTraceIntoString (Exception e) {
+    String stackTraceIntoString(Exception e) {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
-       if (e != null)
-           e.printStackTrace(pw);
+        if (e != null)
+            e.printStackTrace(pw);
         return sw.toString();
     }
 

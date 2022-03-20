@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Rating {
-    public String Source;
-    public String Value;
+    private String Source;
+    private String Value;
 }
