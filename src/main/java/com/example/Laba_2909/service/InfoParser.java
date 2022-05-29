@@ -32,9 +32,10 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import org.springframework.core.convert.converter.Converter;
 
 @Service
-public class InfoParser {
+public class InfoParser  implements Converter<String, Movie>{
 
     Logger logger = LoggerFactory.getLogger(InfoParser.class);
     public static String[] fieldsNameArray = {"imdbID",
@@ -177,6 +178,16 @@ public class InfoParser {
         if (e != null)
             e.printStackTrace(pw);
         return sw.toString();
+    }
+
+    @Override
+    public Movie convert(String source) {
+        Movie film = null;
+        if (source.startsWith("<?xml "))
+            film = parseXML(source);
+        else if (source.startsWith("{\""))
+            film = parseJson(source);
+        return film;
     }
 
 

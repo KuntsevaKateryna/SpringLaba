@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.ui.ModelMap;
@@ -39,6 +40,9 @@ public class MainController {
 
     @Autowired
     private InfoParser infoParser;
+
+    @Autowired
+    ConversionService conversionService;
 
     List<String> film_info = new ArrayList<String>();
     List<Movie> films = new ArrayList<Movie>();
@@ -81,7 +85,8 @@ public class MainController {
                 logger.warn("finished name result_imdbID=" + result_imdbID);
             });
             film_info.add(result_imdbID.get());
-            films.add(chooseParser(r, result_imdbID.get()));
+           // films.add(chooseParser(r, result_imdbID.get()));
+            films.add(conversionService.convert(result_imdbID.get(), Movie.class));
         }
 
         if (!t.isEmpty()) {
@@ -90,7 +95,8 @@ public class MainController {
                 logger.warn("finished name result_title=" + result_title);
             });
             film_info.add(result_title.get());
-            films.add(chooseParser(r, result_title.get()));
+            //films.add(chooseParser(r, result_title.get()));
+            films.add(conversionService.convert(result_title.get(), Movie.class));
          }
 
         rez = String.join("\n\n", film_info);
@@ -122,7 +128,7 @@ public class MainController {
      * @param film_info the film info line, need to parse
      * @return Movie object
      */
-    private Movie chooseParser (String format, String film_info) {
+  /*  private Movie chooseParser (String format, String film_info) {
         Movie film = null;
         if (format.equals("xml")) {
             film = infoParser.parseXML(film_info);
@@ -132,4 +138,5 @@ public class MainController {
         }
         return film;
     }
+    */
 }
